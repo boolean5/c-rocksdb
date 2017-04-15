@@ -33,6 +33,8 @@
 #include "rocksdb/rate_limiter.h"
 #include "rocksdb/utilities/backupable_db.h"
 #include "utilities/merge_operators.h"
+#include "rocksdb/utilities/transaction.h"
+#include "rocksdb/utilities/transaction_db.h"
 
 using rocksdb::Cache;
 using rocksdb::ColumnFamilyDescriptor;
@@ -84,6 +86,10 @@ using rocksdb::RestoreOptions;
 using rocksdb::CompactRangeOptions;
 using rocksdb::RateLimiter;
 using rocksdb::NewGenericRateLimiter;
+using rocksdb::TransactionDBOptions;
+using rocksdb::TransactionDB;
+using rocksdb::TransactionOptions;
+using rocksdb::Transaction;
 
 using std::shared_ptr;
 
@@ -121,6 +127,11 @@ struct rocksdb_envoptions_t      { EnvOptions        rep; };
 struct rocksdb_ingestexternalfileoptions_t  { IngestExternalFileOptions rep; };
 struct rocksdb_sstfilewriter_t   { SstFileWriter*    rep; };
 struct rocksdb_ratelimiter_t     { RateLimiter*      rep; };
+
+struct rocksdb_transactiondb_options_t          {TransactionDBOptions   rep;};
+struct rocksdb_transactiondb_t                  {TransactionDB*         rep;};
+struct rocksdb_transaction_options_t            {TransactionOptions     rep;};
+struct rocksdb_transaction_t                    {Transaction*           rep;};
 
 struct rocksdb_compactionfiltercontext_t {
   CompactionFilter::Context rep;
@@ -2685,6 +2696,126 @@ void rocksdb_delete_file_in_range_cf(
           db->rep, column_family->rep,
           (start_key ? (a = Slice(start_key, start_key_len), &a) : nullptr),
           (limit_key ? (b = Slice(limit_key, limit_key_len), &b) : nullptr)));
+}
+
+rocksdb_transactiondb_options_t* rocksdb_transactiondb_options_create() {
+        return new rocksdb_transactiondb_options_t;
+}
+
+void rocksdb_transactiondb_options_destroy(rocksdb_transactiondb_options_t* opt){
+        delete opt;
+}
+
+rocksdb_transaction_options_t* rocksdb_transaction_options_create() {
+        return new rocksdb_transaction_options_t;
+}
+
+void rocksdb_transaction_options_destroy(rocksdb_transaction_options_t* opt) {
+        delete opt;
+}
+
+rocksdb_transactiondb_t* rocksdb_transactiondb_open(
+        const rocksdb_options_t* options,
+        const rocksdb_transactiondb_options_t* txn_db_options,
+        const char* name,
+        char** errptr){
+        TransactionDB* txn_db;
+        if (SaveError(errptr, TransactionDB::Open(options->rep, txn_db_options->rep, std::string(name), &txn_db))) {
+                return nullptr;
+        }
+        rocksdb_transactiondb_t* result = new rocksdb_transactiondb_t;
+        result->rep = txn_db;
+        return result;
+}
+
+rocksdb_transaction_t* rocksdb_transaction_begin(
+        rocksdb_transactiondb_t* txn_db,
+        const rocksdb_writeoptions_t* write_options,
+        const rocksdb_transaction_options_t* txn_options,
+        rocksdb_transaction_t* old_txn) {
+        rocksdb_transaction_t* result = new rocksdb_transaction_t;
+        if (old_txn == nullptr) {
+              result->rep = txn_db->rep->BeginTransaction(write_options->rep, txn_options->rep, nullptr);
+        } else { 
+              result->rep = txn_db->rep->BeginTransaction(write_options->rep, txn_options->rep, old_txn->rep);
+        }
+        return result;
+}
+
+//Read a key inside a transaction
+char* rocksdb_transaction_get(
+        rocksdb_transaction_t* txn,
+        const rocksdb_readoptions_t* options,
+        const char* key, size_t klen,
+        size_t* vlen,
+        char** errptr) {
+        char* result = nullptr;
+        std::string tmp;
+        Status s = txn->rep->Get(options->rep, Slice(key, klen), &tmp);
+        if (s.ok()) {
+                *vlen = tmp.size();
+                result = CopyString(tmp);
+        } else {
+                *vlen = 0;
+                if (!s.IsNotFound()) {
+                        SaveError(errptr, s);
+                }
+        }
+        return result;
+}
+
+// Read a key outside a transaction
+char* rocksdb_transactiondb_get(
+    rocksdb_transactiondb_t* txn_db,
+    const rocksdb_readoptions_t* options,
+    const char* key, size_t klen,
+    size_t* vlen,
+    char** errptr){
+    char* result = nullptr;
+        std::string tmp;
+        Status s = txn_db->rep->Get(options->rep, Slice(key, klen), &tmp);
+        if (s.ok()) {
+                *vlen = tmp.size();
+                result = CopyString(tmp);
+        } else {
+                *vlen = 0;
+                if (!s.IsNotFound()) {
+                        SaveError(errptr, s);
+                }
+        }
+        return result;
+}
+
+void rocksdb_transaction_put(
+        rocksdb_transaction_t* txn,
+        const char* key, size_t klen,
+        const char* val, size_t vlen,
+        char** errptr) {
+        SaveError(errptr, txn->rep->Put(Slice(key, klen), Slice(val, vlen)));
+}
+
+void rocksdb_transaction_commit(
+        rocksdb_transaction_t* txn,
+        char** errptr) {
+        SaveError(errptr, txn->rep->Commit());
+}
+
+void rocksdb_transaction_rollback(
+        rocksdb_transaction_t* txn,
+        char** errptr) {
+        SaveError(errptr, txn->rep->Rollback());
+}
+
+void rocksdb_transactiondb_close(rocksdb_transactiondb_t* txn_db) {
+        delete txn_db->rep;
+        delete txn_db;
+}
+
+void rocksdb_transactiondb_destroy(
+        const rocksdb_options_t* options,
+        const char* name,
+        char** errptr) {
+        SaveError(errptr, DestroyDB(name, options->rep));
 }
 
 void rocksdb_free(void* ptr) { free(ptr); }
