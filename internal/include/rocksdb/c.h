@@ -1102,9 +1102,6 @@ extern ROCKSDB_LIBRARY_API void rocksdb_transaction_commit(
 extern ROCKSDB_LIBRARY_API void rocksdb_transaction_rollback(
         rocksdb_transaction_t* txn, char** errptr);
 
-extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_destroy(
-        const rocksdb_options_t* options, const char* name, char** errptr);
-
 extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_close(
         rocksdb_transactiondb_t* txn_db);
 

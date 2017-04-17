@@ -1155,7 +1155,7 @@ int main(int argc, char** argv) {
 
     // close and destroy
     rocksdb_transactiondb_close(txn_db);
-    rocksdb_transactiondb_destroy(options, dbname, &err);
+    rocksdb_destroy_db(options, dbname, &err);
     CheckNoError(err);
   }
 

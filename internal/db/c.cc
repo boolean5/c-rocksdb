@@ -2811,13 +2811,6 @@ void rocksdb_transactiondb_close(rocksdb_transactiondb_t* txn_db) {
         delete txn_db;
 }
 
-void rocksdb_transactiondb_destroy(
-        const rocksdb_options_t* options,
-        const char* name,
-        char** errptr) {
-        SaveError(errptr, DestroyDB(name, options->rep));
-}
-
 void rocksdb_free(void* ptr) { free(ptr); }
 
 }  // end extern "C"
