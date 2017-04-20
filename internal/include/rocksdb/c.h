@@ -1111,9 +1111,33 @@ extern ROCKSDB_LIBRARY_API rocksdb_transactiondb_options_t* rocksdb_transactiond
 
 extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_options_destroy(rocksdb_transactiondb_options_t* opt);
 
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_options_set_max_num_locks(
+rocksdb_transactiondb_options_t* opt, int64_t max_num_locks);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_options_set_num_stripes(
+rocksdb_transactiondb_options_t* opt, size_t num_stripes);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_options_set_transaction_lock_timeout(rocksdb_transactiondb_options_t* opt, int64_t txn_lock_timeout);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_options_set_default_lock_timeout(rocksdb_transactiondb_options_t* opt, int64_t default_lock_timeout);
+
 extern ROCKSDB_LIBRARY_API rocksdb_transaction_options_t* rocksdb_transaction_options_create();
 
 extern ROCKSDB_LIBRARY_API void rocksdb_transaction_options_destroy(rocksdb_transaction_options_t* opt);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transaction_options_set_set_snapshot(
+rocksdb_transaction_options_t* opt, unsigned char v);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transaction_options_set_deadlock_detect(
+rocksdb_transaction_options_t* opt, unsigned char v);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transaction_options_set_lock_timeout(
+rocksdb_transaction_options_t* opt, int64_t lock_timeout);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transaction_options_set_expiration(
+rocksdb_transaction_options_t* opt, int64_t expiration);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transaction_options_set_deadlock_detect_depth(rocksdb_transaction_options_t* opt, int64_t depth);
 
 // referring to convention (3), this should be used by client
 // to free memory that was malloc()ed

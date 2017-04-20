@@ -2706,12 +2706,57 @@ void rocksdb_transactiondb_options_destroy(rocksdb_transactiondb_options_t* opt)
         delete opt;
 }
 
+void rocksdb_transactiondb_options_set_max_num_locks(
+rocksdb_transactiondb_options_t* opt, int64_t max_num_locks) {
+	opt->rep.max_num_locks = max_num_locks;
+}
+
+void rocksdb_transactiondb_options_set_num_stripes(
+rocksdb_transactiondb_options_t* opt, size_t num_stripes) {
+	opt->rep.num_stripes = num_stripes;
+}
+
+void rocksdb_transactiondb_options_set_transaction_lock_timeout(
+rocksdb_transactiondb_options_t* opt, int64_t txn_lock_timeout) {
+	opt->rep.transaction_lock_timeout = txn_lock_timeout;
+}
+
+void rocksdb_transactiondb_options_set_default_lock_timeout(
+rocksdb_transactiondb_options_t* opt, int64_t default_lock_timeout) {
+	opt->rep.default_lock_timeout = default_lock_timeout;
+}
+
 rocksdb_transaction_options_t* rocksdb_transaction_options_create() {
         return new rocksdb_transaction_options_t;
 }
 
 void rocksdb_transaction_options_destroy(rocksdb_transaction_options_t* opt) {
         delete opt;
+}
+
+void rocksdb_transaction_options_set_set_snapshot(
+rocksdb_transaction_options_t* opt, unsigned char v) {
+	opt->rep.set_snapshot = v;
+}
+
+void rocksdb_transaction_options_set_deadlock_detect(
+rocksdb_transaction_options_t* opt, unsigned char v) {
+	opt->rep.deadlock_detect = v;
+}
+
+void rocksdb_transaction_options_set_lock_timeout(
+rocksdb_transaction_options_t* opt, int64_t lock_timeout) {
+	opt->rep.lock_timeout = lock_timeout;
+}
+
+void rocksdb_transaction_options_set_expiration(
+rocksdb_transaction_options_t* opt, int64_t expiration) {
+	opt->rep.expiration = expiration;
+}
+
+void rocksdb_transaction_options_set_deadlock_detect_depth(
+rocksdb_transaction_options_t* opt, int64_t depth) {
+	opt->rep.deadlock_detect_depth = depth;
 }
 
 rocksdb_transactiondb_t* rocksdb_transactiondb_open(
