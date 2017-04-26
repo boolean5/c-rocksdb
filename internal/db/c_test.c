@@ -1128,8 +1128,19 @@ int main(int argc, char** argv) {
     txn_db = rocksdb_transactiondb_open(options, txn_db_options, dbname, &err);
     CheckNoError(err);
 
-    // put
+    // put outside a transaction
+    rocksdb_transactiondb_put(txn_db, woptions, "foo", 3, "hello", 5, &err);
+    CheckNoError(err);
+    CheckTxnDBGet(txn_db, roptions, "foo", "hello")
+    
+    // delete from outside transaction
+    rocksdb_transactiondb_delete(txn_db, woptions, "foo", 3, &err);
+    CheckNoError(err);
+    CheckTxnDBGet(txn_db, roptions, "foo", NULL);
+ 
+    // begin a transaction
     txn = rocksdb_transaction_begin(txn_db, woptions, txn_options, NULL);
+    // put
     rocksdb_transaction_put(txn, "foo", 3, "hello", 5, &err);
     CheckNoError(err);
     CheckTxnGet(txn, roptions, "foo", "hello");
@@ -1143,12 +1154,35 @@ int main(int argc, char** argv) {
 
     // read from outside transaction, after commit
     CheckTxnDBGet(txn_db, roptions, "foo", "hello");
-
+   
     // reuse old transaction
     txn = rocksdb_transaction_begin(txn_db, woptions, txn_options, txn);
+   
+    // snapshot (repeatable reads)
+    rocksdb_snapshot_t* snap;
+    snap = rocksdb_transactiondb_create_snapshot(txn_db); 
+    rocksdb_readoptions_set_snapshot(roptions, snap);
+    // delete
+    rocksdb_transaction_delete(txn, "foo", 3, &err);
+    CheckNoError(err);
+
+    CheckTxnGet(txn, roptions, "foo", "hello");
+    rocksdb_readoptions_set_snapshot(roptions, NULL);
+    CheckTxnGet(txn, roptions, "foo", NULL);
+    rocksdb_transactiondb_release_snapshot(txn_db, snap);
+
+    // iterate
+    rocksdb_transaction_put(txn, "bar", 3, "hi", 2, &err);
+    rocksdb_iterator_t* iter = rocksdb_transaction_create_iterator(txn, roptions);
+    CheckCondition(!rocksdb_iter_valid(iter));
+    rocksdb_iter_seek_to_first(iter);
+    CheckCondition(rocksdb_iter_valid(iter));
+    CheckIter(iter, "bar", "hi");
+    rocksdb_iter_get_error(iter, &err);
+    CheckNoError(err);
+    rocksdb_iter_destroy(iter);
 
     // rollback
-    rocksdb_transaction_put(txn, "bar", 3, "hi", 2, &err);
     rocksdb_transaction_rollback(txn, &err);
     CheckNoError(err);
     CheckTxnDBGet(txn_db, roptions, "bar", NULL);

@@ -2773,6 +2773,20 @@ rocksdb_transactiondb_t* rocksdb_transactiondb_open(
         return result;
 }
 
+const rocksdb_snapshot_t* rocksdb_transactiondb_create_snapshot(
+rocksdb_transactiondb_t* txn_db) {
+	rocksdb_snapshot_t* result = new rocksdb_snapshot_t;
+	result->rep = txn_db->rep->GetSnapshot();
+	return result;
+}
+
+void rocksdb_transactiondb_release_snapshot(
+	rocksdb_transactiondb_t* txn_db,
+	const rocksdb_snapshot_t* snapshot) {
+	txn_db->rep->ReleaseSnapshot(snapshot->rep);
+	delete snapshot;
+}
+
 rocksdb_transaction_t* rocksdb_transaction_begin(
         rocksdb_transactiondb_t* txn_db,
         const rocksdb_writeoptions_t* write_options,
@@ -2831,12 +2845,49 @@ char* rocksdb_transactiondb_get(
         return result;
 }
 
+// Put a key inside a transaction
 void rocksdb_transaction_put(
         rocksdb_transaction_t* txn,
         const char* key, size_t klen,
         const char* val, size_t vlen,
         char** errptr) {
         SaveError(errptr, txn->rep->Put(Slice(key, klen), Slice(val, vlen)));
+}
+
+//Put a key outside a transaction
+void rocksdb_transactiondb_put(
+	rocksdb_transactiondb_t* txn_db,
+	const rocksdb_writeoptions_t* options,
+	const char* key, size_t klen,
+	const char* val, size_t vlen,
+	char** errptr) {
+	SaveError(errptr, txn_db->rep->Put(options->rep, Slice(key, klen), Slice(val, vlen)));
+}
+
+// Delete a key inside a transaction
+void rocksdb_transaction_delete(
+	rocksdb_transaction_t* txn,
+	const char* key, size_t klen,
+	char** errptr) {
+	SaveError(errptr, txn->rep->Delete(Slice(key, klen)));
+}
+
+// Delete a key outside a transaction
+void rocksdb_transactiondb_delete(
+	rocksdb_transactiondb_t* txn_db,
+	const rocksdb_writeoptions_t* options,
+	const char* key, size_t klen,
+	char** errptr) {
+	SaveError(errptr, txn_db->rep->Delete(options->rep, Slice(key, klen)));
+}
+
+// Create an iterator inside a transaction
+rocksdb_iterator_t* rocksdb_transaction_create_iterator(
+	rocksdb_transaction_t* txn,
+	const rocksdb_readoptions_t* options) {
+	rocksdb_iterator_t* result = new rocksdb_iterator_t;
+	result->rep = txn->rep->GetIterator(options->rep);
+	return result;
 }
 
 void rocksdb_transaction_commit(

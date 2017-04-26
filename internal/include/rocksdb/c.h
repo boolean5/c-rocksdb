@@ -1084,6 +1084,11 @@ extern ROCKSDB_LIBRARY_API void rocksdb_delete_file_in_range_cf(
 extern ROCKSDB_LIBRARY_API rocksdb_transactiondb_t* rocksdb_transactiondb_open(
         const rocksdb_options_t* options, const rocksdb_transactiondb_options_t* txn_db_options, const char* name, char** errptr);
 
+extern ROCKSDB_LIBRARY_API const rocksdb_snapshot_t* rocksdb_transactiondb_create_snapshot(rocksdb_transactiondb_t* txn_db); 
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_release_snapshot(
+        rocksdb_transactiondb_t* txn_db, const rocksdb_snapshot_t* snapshot);
+
 extern ROCKSDB_LIBRARY_API rocksdb_transaction_t* rocksdb_transaction_begin(
         rocksdb_transactiondb_t* txn_db, const rocksdb_writeoptions_t* write_options, const rocksdb_transaction_options_t* txn_options, rocksdb_transaction_t* old_txn);
 
@@ -1095,6 +1100,18 @@ extern ROCKSDB_LIBRARY_API char* rocksdb_transactiondb_get(
 
 extern ROCKSDB_LIBRARY_API void rocksdb_transaction_put(
         rocksdb_transaction_t* txn, const char* key, size_t klen, const char* val, size_t vlen, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_put(
+        rocksdb_transactiondb_t* txn_db, const rocksdb_writeoptions_t* options, const char* key, size_t klen, const char* val, size_t vlen, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transaction_delete(
+        rocksdb_transaction_t* txn, const char* key, size_t klen, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_delete(
+        rocksdb_transactiondb_t* txn_db, const rocksdb_writeoptions_t* options, const char* key, size_t klen, char** errptr);
+
+extern ROCKSDB_LIBRARY_API rocksdb_iterator_t* rocksdb_transaction_create_iterator(
+        rocksdb_transaction_t* txn, const rocksdb_readoptions_t* options);
 
 extern ROCKSDB_LIBRARY_API void rocksdb_transaction_commit(
         rocksdb_transaction_t* txn, char** errptr);
