@@ -35,6 +35,7 @@
 #include "utilities/merge_operators.h"
 #include "rocksdb/utilities/transaction.h"
 #include "rocksdb/utilities/transaction_db.h"
+#include "rocksdb/utilities/checkpoint.h"
 
 using rocksdb::Cache;
 using rocksdb::ColumnFamilyDescriptor;
@@ -90,6 +91,7 @@ using rocksdb::TransactionDBOptions;
 using rocksdb::TransactionDB;
 using rocksdb::TransactionOptions;
 using rocksdb::Transaction;
+using rocksdb::Checkpoint;
 
 using std::shared_ptr;
 
@@ -132,6 +134,8 @@ struct rocksdb_transactiondb_options_t          {TransactionDBOptions   rep;};
 struct rocksdb_transactiondb_t                  {TransactionDB*         rep;};
 struct rocksdb_transaction_options_t            {TransactionOptions     rep;};
 struct rocksdb_transaction_t                    {Transaction*           rep;};
+
+struct rocksdb_checkpoint_t			{Checkpoint*		rep;};
 
 struct rocksdb_compactionfiltercontext_t {
   CompactionFilter::Context rep;
@@ -542,6 +546,29 @@ void rocksdb_backup_engine_info_destroy(
 void rocksdb_backup_engine_close(rocksdb_backup_engine_t* be) {
   delete be->rep;
   delete be;
+}
+
+rocksdb_checkpoint_t* rocksdb_checkpoint_object_create(
+	rocksdb_t* db,
+	char** errptr) {
+	Checkpoint* checkpoint;
+	if (SaveError(errptr, Checkpoint::Create(db->rep, &checkpoint))) {
+		return nullptr;
+	}
+	rocksdb_checkpoint_t* result = new rocksdb_checkpoint_t;
+	result->rep = checkpoint;
+	return result;
+}
+
+void rocksdb_checkpoint_create(
+	rocksdb_checkpoint_t* checkpoint,
+	const char* checkpoint_dir,
+	char** errptr) {
+	SaveError(errptr, checkpoint->rep->CreateCheckpoint(std::string(checkpoint_dir)));
+}
+
+void rocksdb_checkpoint_object_destroy(rocksdb_checkpoint_t* checkpoint) {
+	delete checkpoint->rep;
 }
 
 void rocksdb_close(rocksdb_t* db) {
@@ -2905,6 +2932,18 @@ void rocksdb_transaction_rollback(
 void rocksdb_transactiondb_close(rocksdb_transactiondb_t* txn_db) {
         delete txn_db->rep;
         delete txn_db;
+}
+
+rocksdb_checkpoint_t* rocksdb_transactiondb_checkpoint_object_create(
+	rocksdb_transactiondb_t* txn_db, 
+	char** errptr) {
+	Checkpoint* checkpoint;
+	if (SaveError(errptr, Checkpoint::Create(txn_db->rep, &checkpoint))) {
+		return nullptr;
+	}
+	rocksdb_checkpoint_t* result = new rocksdb_checkpoint_t;
+	result->rep = checkpoint;
+	return result;	
 }
 
 void rocksdb_free(void* ptr) { free(ptr); }

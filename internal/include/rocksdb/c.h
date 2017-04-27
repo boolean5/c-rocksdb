@@ -114,6 +114,7 @@ typedef struct rocksdb_transactiondb_options_t  rocksdb_transactiondb_options_t;
 typedef struct rocksdb_transactiondb_t          rocksdb_transactiondb_t;
 typedef struct rocksdb_transaction_options_t    rocksdb_transaction_options_t;
 typedef struct rocksdb_transaction_t            rocksdb_transaction_t;
+typedef struct rocksdb_checkpoint_t		rocksdb_checkpoint_t;
 
 /* DB operations */
 
@@ -171,6 +172,15 @@ extern ROCKSDB_LIBRARY_API void rocksdb_backup_engine_info_destroy(
 
 extern ROCKSDB_LIBRARY_API void rocksdb_backup_engine_close(
     rocksdb_backup_engine_t* be);
+
+extern ROCKSDB_LIBRARY_API rocksdb_checkpoint_t* rocksdb_checkpoint_object_create(
+    rocksdb_t* db, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_checkpoint_create(
+    rocksdb_checkpoint_t* checkpoint, const char* checkpoint_dir, 
+    char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_checkpoint_object_destroy(rocksdb_checkpoint_t* checkpoint);
 
 extern ROCKSDB_LIBRARY_API rocksdb_t* rocksdb_open_column_families(
     const rocksdb_options_t* options, const char* name, int num_column_families,
@@ -1121,6 +1131,8 @@ extern ROCKSDB_LIBRARY_API void rocksdb_transaction_rollback(
 
 extern ROCKSDB_LIBRARY_API void rocksdb_transactiondb_close(
         rocksdb_transactiondb_t* txn_db);
+
+extern ROCKSDB_LIBRARY_API rocksdb_checkpoint_t* rocksdb_transactiondb_checkpoint_object_create( rocksdb_transactiondb_t* txn_db, char** errptr);
 
 /* Transaction Options */
 

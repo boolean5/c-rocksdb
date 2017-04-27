@@ -40,6 +40,7 @@ const char* phase = "";
 static char dbname[200];
 static char sstfilename[200];
 static char dbbackupname[200];
+static char dbcheckpointname[200];
 
 static void StartPhase(const char* name) {
   fprintf(stderr, "=== Test %s\n", name);
@@ -338,6 +339,11 @@ int main(int argc, char** argv) {
            GetTempDir(),
            ((int) geteuid()));
 
+  snprintf(dbcheckpointname, sizeof(dbcheckpointname),
+           "%s/rocksdb_c_test-%d-checkpoint",
+           GetTempDir(),
+           ((int) geteuid()));
+
   snprintf(sstfilename, sizeof(sstfilename),
            "%s/rocksdb_c_test-%d-sst",
            GetTempDir(),
@@ -451,6 +457,33 @@ int main(int argc, char** argv) {
     CheckGet(db, roptions, "foo", "hello");
 
     rocksdb_backup_engine_close(be);
+  }
+
+  StartPhase("checkpoint");
+  {
+    rocksdb_destroy_db(options, dbcheckpointname, &err);
+    CheckNoError(err);
+
+    rocksdb_checkpoint_t* checkpoint = rocksdb_checkpoint_object_create(db, &err);
+    CheckNoError(err);
+
+    rocksdb_checkpoint_create(checkpoint, dbcheckpointname, &err);
+    CheckNoError(err);
+
+    // start a new database from the checkpoint
+    rocksdb_close(db);
+    db = rocksdb_open(options, dbcheckpointname, &err);
+    CheckNoError(err);
+    CheckGet(db, roptions, "foo", "hello");
+    
+    rocksdb_checkpoint_object_destroy(checkpoint);
+
+    rocksdb_close(db);
+    rocksdb_destroy_db(options, dbcheckpointname, &err);
+    CheckNoError(err);
+
+    db = rocksdb_open(options, dbname, &err);
+    CheckNoError(err);
   }
 
   StartPhase("compactall");
