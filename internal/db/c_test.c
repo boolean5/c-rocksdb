@@ -472,8 +472,10 @@ int main(int argc, char** argv) {
 
     // start a new database from the checkpoint
     rocksdb_close(db);
+    rocksdb_options_set_error_if_exists(options, 0);
     db = rocksdb_open(options, dbcheckpointname, &err);
     CheckNoError(err);
+
     CheckGet(db, roptions, "foo", "hello");
     
     rocksdb_checkpoint_object_destroy(checkpoint);
@@ -484,6 +486,7 @@ int main(int argc, char** argv) {
 
     db = rocksdb_open(options, dbname, &err);
     CheckNoError(err);
+    rocksdb_options_set_error_if_exists(options, 1);
   }
 
   StartPhase("compactall");
@@ -1164,7 +1167,7 @@ int main(int argc, char** argv) {
     // put outside a transaction
     rocksdb_transactiondb_put(txn_db, woptions, "foo", 3, "hello", 5, &err);
     CheckNoError(err);
-    CheckTxnDBGet(txn_db, roptions, "foo", "hello")
+    CheckTxnDBGet(txn_db, roptions, "foo", "hello");
     
     // delete from outside transaction
     rocksdb_transactiondb_delete(txn_db, woptions, "foo", 3, &err);
@@ -1177,6 +1180,13 @@ int main(int argc, char** argv) {
     rocksdb_transaction_put(txn, "foo", 3, "hello", 5, &err);
     CheckNoError(err);
     CheckTxnGet(txn, roptions, "foo", "hello");
+    // delete
+    rocksdb_transaction_delete(txn, "foo", 3, &err);
+    CheckNoError(err);
+    CheckTxnGet(txn, roptions, "foo", NULL);
+
+    rocksdb_transaction_put(txn, "foo", 3, "hello", 5, &err);
+    CheckNoError(err);
 
     // read from outside transaction, before commit
     CheckTxnDBGet(txn_db, roptions, "foo", NULL);
@@ -1191,18 +1201,18 @@ int main(int argc, char** argv) {
     // reuse old transaction
     txn = rocksdb_transaction_begin(txn_db, woptions, txn_options, txn);
    
-    // snapshot (repeatable reads)
-    rocksdb_snapshot_t* snap;
-    snap = rocksdb_transactiondb_create_snapshot(txn_db); 
-    rocksdb_readoptions_set_snapshot(roptions, snap);
-    // delete
-    rocksdb_transaction_delete(txn, "foo", 3, &err);
+    // snapshot
+    const rocksdb_snapshot_t* snapshot;
+    snapshot = rocksdb_transactiondb_create_snapshot(txn_db); 
+    rocksdb_readoptions_set_snapshot(roptions, snapshot);
+
+    rocksdb_transactiondb_put(txn_db, woptions, "foo", 3, "hey", 3,  &err);
     CheckNoError(err);
 
-    CheckTxnGet(txn, roptions, "foo", "hello");
+    CheckTxnDBGet(txn_db, roptions, "foo", "hello");
     rocksdb_readoptions_set_snapshot(roptions, NULL);
-    CheckTxnGet(txn, roptions, "foo", NULL);
-    rocksdb_transactiondb_release_snapshot(txn_db, snap);
+    rocksdb_transactiondb_release_snapshot(txn_db, snapshot);
+    CheckTxnDBGet(txn_db, roptions, "foo", "hey");
 
     // iterate
     rocksdb_transaction_put(txn, "bar", 3, "hi", 2, &err);
