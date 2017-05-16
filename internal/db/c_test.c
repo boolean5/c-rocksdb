@@ -1231,6 +1231,7 @@ int main(int argc, char** argv) {
     CheckTxnDBGet(txn_db, roptions, "bar", NULL);
 
     // close and destroy
+    rocksdb_transaction_destroy(txn);
     rocksdb_transactiondb_close(txn_db);
     rocksdb_destroy_db(options, dbname, &err);
     CheckNoError(err);

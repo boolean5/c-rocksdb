@@ -2828,6 +2828,24 @@ rocksdb_transaction_t* rocksdb_transaction_begin(
         return result;
 }
 
+void rocksdb_transaction_commit(
+        rocksdb_transaction_t* txn,
+        char** errptr) {
+        SaveError(errptr, txn->rep->Commit());
+}
+
+void rocksdb_transaction_rollback(
+        rocksdb_transaction_t* txn,
+        char** errptr) {
+        SaveError(errptr, txn->rep->Rollback());
+}
+
+void rocksdb_transaction_destroy(
+    rocksdb_transaction_t* txn) {
+  delete txn->rep;
+  delete txn;
+}
+
 //Read a key inside a transaction
 char* rocksdb_transaction_get(
         rocksdb_transaction_t* txn,
@@ -2915,18 +2933,6 @@ rocksdb_iterator_t* rocksdb_transaction_create_iterator(
 	rocksdb_iterator_t* result = new rocksdb_iterator_t;
 	result->rep = txn->rep->GetIterator(options->rep);
 	return result;
-}
-
-void rocksdb_transaction_commit(
-        rocksdb_transaction_t* txn,
-        char** errptr) {
-        SaveError(errptr, txn->rep->Commit());
-}
-
-void rocksdb_transaction_rollback(
-        rocksdb_transaction_t* txn,
-        char** errptr) {
-        SaveError(errptr, txn->rep->Rollback());
 }
 
 void rocksdb_transactiondb_close(rocksdb_transactiondb_t* txn_db) {
