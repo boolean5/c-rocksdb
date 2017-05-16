@@ -1235,16 +1235,14 @@ int main(int argc, char** argv) {
     rocksdb_transactiondb_close(txn_db);
     rocksdb_destroy_db(options, dbname, &err);
     CheckNoError(err);
+    rocksdb_transaction_options_destroy(txn_options);
+    rocksdb_transactiondb_options_destroy(txn_db_options);
   }
 
   // Simple sanity check that setting memtable rep works.
   StartPhase("memtable_reps");
   {
     // Create database with vector memtable.
-    //rocksdb_close(db);
-    //rocksdb_destroy_db(options, dbname, &err);
-    //CheckNoError(err);
-
     rocksdb_options_set_memtable_vector_rep(options);
     db = rocksdb_open(options, dbname, &err);
     CheckNoError(err);
@@ -1266,8 +1264,6 @@ int main(int argc, char** argv) {
   rocksdb_readoptions_destroy(roptions);
   rocksdb_writeoptions_destroy(woptions);
   rocksdb_compactoptions_destroy(coptions);
-  rocksdb_transaction_options_destroy(txn_options);
-  rocksdb_transactiondb_options_destroy(txn_db_options);
   rocksdb_cache_destroy(cache);
   rocksdb_comparator_destroy(cmp);
   rocksdb_env_destroy(env);

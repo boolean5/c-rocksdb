@@ -2819,13 +2819,13 @@ rocksdb_transaction_t* rocksdb_transaction_begin(
         const rocksdb_writeoptions_t* write_options,
         const rocksdb_transaction_options_t* txn_options,
         rocksdb_transaction_t* old_txn) {
-        rocksdb_transaction_t* result = new rocksdb_transaction_t;
         if (old_txn == nullptr) {
+              rocksdb_transaction_t* result = new rocksdb_transaction_t;
               result->rep = txn_db->rep->BeginTransaction(write_options->rep, txn_options->rep, nullptr);
-        } else { 
-              result->rep = txn_db->rep->BeginTransaction(write_options->rep, txn_options->rep, old_txn->rep);
+	      return result;
         }
-        return result;
+        old_txn->rep = txn_db->rep->BeginTransaction(write_options->rep, txn_options->rep, old_txn->rep);
+	return old_txn;
 }
 
 void rocksdb_transaction_commit(
